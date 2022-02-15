@@ -16,6 +16,7 @@ pub mod client;
 pub mod server;
 
 pub use client::Client;
+pub use s2n_tls::raw::config::ConfigResolver;
 pub use server::Server;
 
 #[cfg(test)]

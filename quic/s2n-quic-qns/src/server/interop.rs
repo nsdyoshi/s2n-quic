@@ -13,6 +13,7 @@ use s2n_quic::{
         endpoint_limits,
         event::{events, Subscriber},
         io,
+        tls::s2n_tls::ConfigResolver,
     },
     Server,
 };
@@ -115,6 +116,7 @@ impl Interop {
                 // The server builder defaults to a chain because this allows certs to just work, whether
                 // the PEM contains a single cert or a chain
                 let tls = s2n_quic::provider::tls::s2n_tls::Server::builder()
+                    // .with_config_resolver(config_resolver)
                     .with_certificate(
                         tls::s2n::ca(self.certificate.as_ref())?,
                         tls::s2n::private_key(self.private_key.as_ref())?,
@@ -150,6 +152,18 @@ impl Interop {
         Ok(server)
     }
 }
+
+struct Bla {}
+
+// impl ConfigResolver for Bla {
+//     fn poll_config(
+//         &mut self,
+//         cx: &mut core::task::Context,
+//         client_hello: (bool, bool),
+//     ) -> std::task::Poll<Result<Config, Box<dyn ConfigError>>> {
+//         todo!()
+//     }
+// }
 
 fn is_supported_testcase(testcase: Testcase) -> bool {
     use Testcase::*;

@@ -123,7 +123,7 @@ impl tls::Endpoint for Client {
     ) -> Self::Session {
         let config = self.config.clone();
         self.params.with(params, |params| {
-            let mut session = Session::new(endpoint::Type::Client, config, params).unwrap();
+            let mut session = Session::new(endpoint::Type::Client, config, params, None).unwrap();
             session
                 .connection
                 .set_server_name(server_name.as_bytes())

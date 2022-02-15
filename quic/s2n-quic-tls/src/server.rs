@@ -7,11 +7,17 @@ use crate::{
     params::Params,
     session::Session,
 };
+use core::{
+    ffi::c_void,
+    task::{Context, Poll, Waker},
+};
 use s2n_codec::EncoderValue;
 use s2n_quic_core::{application::ServerName, crypto::tls, endpoint};
 use s2n_tls::raw::{
-    config::{self, Config},
+    config::{self, Config, ConfigResolver},
+    connection::Connection,
     error::Error,
+    ffi::*,
     security,
 };
 use std::sync::Arc;
@@ -20,6 +26,7 @@ pub struct Server {
     config: Config,
     #[allow(dead_code)] // we need to hold on to the handle to ensure it is cleaned up correctly
     keylog: Option<KeyLogHandle>,
+    config_resolver: Option<Box<dyn ConfigResolver>>,
     params: Params,
 }
 
@@ -40,6 +47,7 @@ impl Default for Server {
 pub struct Builder {
     config: config::Builder,
     keylog: Option<KeyLogHandle>,
+    config_resolver: Option<Box<dyn ConfigResolver>>,
 }
 
 impl Default for Builder {
@@ -57,11 +65,20 @@ impl Default for Builder {
         Self {
             config,
             keylog: None,
+            config_resolver: None,
         }
     }
 }
 
 impl Builder {
+    pub fn with_config_resolver(
+        mut self,
+        config_resolver: Box<dyn ConfigResolver>,
+    ) -> Result<Self, Error> {
+        self.config.set_config_resolver(config_resolver)?;
+        Ok(self)
+    }
+
     pub fn with_application_protocols<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
         mut self,
         protocols: P,
@@ -110,12 +127,52 @@ impl Builder {
         Ok(self)
     }
 
-    pub fn build(self) -> Result<Server, Error> {
+    pub fn build(mut self) -> Result<Server, Error> {
+        // if let Some(config_resolver) = self.config_resolver {
+        unsafe {
+            self.config
+                .set_client_hello_callback_mode(s2n_client_hello_cb_mode::NONBLOCKING)?;
+
+            let context = 4 as *mut c_void;
+            self.config
+                .set_client_hello_callback(Some(client_hello_cb), context)
+                .unwrap();
+        }
+        // }
+
         Ok(Server {
             config: self.config.build()?,
             keylog: self.keylog,
+            config_resolver: self.config_resolver,
             params: Default::default(),
         })
+    }
+}
+
+struct ClientHelloCb {
+    config_resolver: Box<dyn ConfigResolver>,
+    waker: Waker,
+}
+
+/// The function s2n-tls calls when it emits secrets
+unsafe extern "C" fn client_hello_cb(
+    conn: *mut s2n_connection,
+    ctx: *mut ::libc::c_void,
+) -> s2n_status_code::Type {
+    let ctx = &mut *(ctx as *mut ClientHelloCb);
+    let mut context = Context::from_waker(&ctx.waker);
+
+    let client_hello = (true, true); // conn.get_client_hello();
+
+    match ctx.config_resolver.poll_config(&mut context, client_hello) {
+        Poll::Ready(Ok(_config)) => {
+            Connection::client_hello_callback_done(conn).unwrap();
+            // set new config on connection
+
+            s2n_status_code::SUCCESS
+        }
+        Poll::Ready(Err(_err)) => s2n_status_code::FAILURE,
+        Poll::Pending => s2n_status_code::SUCCESS,
     }
 }
 
@@ -124,8 +181,9 @@ impl tls::Endpoint for Server {
 
     fn new_server_session<Params: EncoderValue>(&mut self, params: &Params) -> Self::Session {
         let config = self.config.clone();
+        let config_resolver = self.config_resolver.take();
         self.params.with(params, |params| {
-            Session::new(endpoint::Type::Server, config, params).unwrap()
+            Session::new(endpoint::Type::Server, config, params, config_resolver).unwrap()
         })
     }
 
