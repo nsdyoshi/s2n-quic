@@ -13,7 +13,7 @@ use s2n_quic_core::{
 };
 use s2n_quic_ring::RingCryptoSuite;
 use s2n_tls::raw::{
-    config::Config,
+    config::{Config, ConfigResolver},
     connection::Connection,
     error::Error,
     ffi::{s2n_blinding, s2n_mode},
@@ -29,11 +29,17 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(endpoint: endpoint::Type, config: Config, params: &[u8]) -> Result<Self, Error> {
-        let mut connection = Connection::new(match endpoint {
+    pub fn new(
+        endpoint: endpoint::Type,
+        config: Config,
+        config_resolver: Option<Box<dyn ConfigResolver>>,
+        params: &[u8],
+    ) -> Result<Self, Error> {
+        let mode = match endpoint {
             endpoint::Type::Server => s2n_mode::SERVER,
             endpoint::Type::Client => s2n_mode::CLIENT,
-        });
+        };
+        let mut connection = Connection::new(mode, config_resolver);
 
         connection.set_config(config)?;
         connection.enable_quic()?;
