@@ -13,7 +13,7 @@ use s2n_quic_core::{
 };
 use s2n_quic_ring::RingCryptoSuite;
 use s2n_tls::raw::{
-    config::{Config, ConfigResolver},
+    config::Config,
     connection::Connection,
     error::Error,
     ffi::{s2n_blinding, s2n_mode},
@@ -26,16 +26,10 @@ pub struct Session {
     state: callback::State,
     handshake_complete: bool,
     send_buffer: BytesMut,
-    config_resolver: Option<Box<dyn ConfigResolver>>,
 }
 
 impl Session {
-    pub fn new(
-        endpoint: endpoint::Type,
-        config: Config,
-        params: &[u8],
-        config_resolver: Option<Box<dyn ConfigResolver>>,
-    ) -> Result<Self, Error> {
+    pub fn new(endpoint: endpoint::Type, config: Config, params: &[u8]) -> Result<Self, Error> {
         let mut connection = Connection::new(match endpoint {
             endpoint::Type::Server => s2n_mode::SERVER,
             endpoint::Type::Client => s2n_mode::CLIENT,
@@ -53,7 +47,6 @@ impl Session {
             state: Default::default(),
             handshake_complete: false,
             send_buffer: BytesMut::new(),
-            config_resolver,
         })
     }
 }
@@ -85,29 +78,6 @@ impl tls::Session for Session {
         };
 
         unsafe {
-            // let mut ctx = Context::from_waker(context.waker());
-
-            // match &self.config_resolver {
-            //     Some(config_resolver) => {
-            //         let client_hello = (true, true);
-            //         match config_resolver.poll_config(&mut ctx, client_hello) {
-            //             Poll::Ready(Ok(config)) => {
-            //                 // self.config.set_client_hello_callback();
-            //                 //         self.config.set_client_hello_callback(callback, context);
-            //                 //         self.config
-            //                 //             .set_client_hello_callback_mode(s2n_client_hello_cb_mode::NONBLOCKING)?;
-            //             }
-            //             Poll::Ready(Err(err)) => {
-            //                 return Poll::Ready(Err(transport::Error::NO_ERROR))
-            //             }
-            //             Poll::Pending => return Poll::Pending,
-            //         }
-            //     }
-            //     None => (),
-            // }
-
-            // Safety: the callback struct must live as long as the callbacks are
-            // set on on the connection
             callback.set(&mut self.connection);
         }
 
