@@ -12,7 +12,7 @@ use core::{
     task::{Context, Poll, Waker},
 };
 use s2n_codec::EncoderValue;
-use s2n_quic_core::{application::ServerName, crypto::tls, endpoint};
+use s2n_quic_core::{application::ServerName, crypto::tls, endpoint, event::api::ConnectionId};
 use s2n_tls::raw::{
     config::{self, Config, ConfigResolver},
     connection::Connection,
@@ -87,6 +87,14 @@ impl Builder {
         Ok(self)
     }
 
+    #[deprecated(note = "use `with_application_protocols` instead")]
+    pub fn with_alpn_protocols<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
+        self,
+        protocols: P,
+    ) -> Result<Self, Error> {
+        self.with_application_protocols(protocols)
+    }
+
     pub fn with_certificate<C: IntoCertificate, PK: IntoPrivateKey>(
         mut self,
         certificate: C,
@@ -157,17 +165,22 @@ struct ClientHelloCb {
 /// The function s2n-tls calls when it emits secrets
 unsafe extern "C" fn client_hello_cb(
     conn: *mut s2n_connection,
-    ctx: *mut ::libc::c_void,
+    context: *mut ::libc::c_void,
 ) -> s2n_status_code::Type {
-    let ctx = &mut *(ctx as *mut ClientHelloCb);
-    let mut context = Context::from_waker(&ctx.waker);
+    let context = &mut *(context as *mut ClientHelloCb);
+    let mut future_context = Context::from_waker(&context.waker);
 
-    let client_hello = (true, true); // conn.get_client_hello();
+    // let client_hello = Connection::get_client_hello(conn) as &mut s2n_client_hello;
+    let client_hello = todo!();
 
-    match ctx.config_resolver.poll_config(&mut context, client_hello) {
-        Poll::Ready(Ok(_config)) => {
+    match context
+        .config_resolver
+        .poll_config(&mut future_context, client_hello)
+    {
+        Poll::Ready(Ok(config)) => {
             Connection::client_hello_callback_done(conn).unwrap();
             // set new config on connection
+            Connection::set_config_raw(conn, config).unwrap();
 
             s2n_status_code::SUCCESS
         }
