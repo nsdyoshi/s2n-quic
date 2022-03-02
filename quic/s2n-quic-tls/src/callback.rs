@@ -15,6 +15,7 @@ use s2n_quic_ring::{
     Prk, RingCryptoSuite, SecretPair,
 };
 use s2n_tls::raw::{connection::Connection, error::Fallible, ffi::*};
+use std::task::Waker;
 
 /// The preallocated size of the outgoing buffer
 ///
@@ -55,6 +56,7 @@ where
     /// * or the `unset` method should be called if it doesn't
     pub unsafe fn set(&mut self, connection: &mut Connection) {
         let context = self as *mut Self as *mut c_void;
+        let waker = self.context.waker() as *mut Waker as *mut c_void;
 
         // We use unwrap here since s2n-tls will just check if connection is not null
         connection
@@ -66,6 +68,8 @@ where
             .set_receive_callback(Some(Self::recv_cb))
             .unwrap();
         connection.set_receive_context(context).unwrap();
+        // A Waker if provided for the [`s2n_tls::config::Builder::set_client_hello_handler`].
+        connection.set_context(waker).unwrap();
     }
 
     /// Removes all of the callback and context pointers from the connection
@@ -107,6 +111,7 @@ where
             connection
                 .set_receive_context(core::ptr::null_mut())
                 .unwrap();
+            connection.set_context(core::ptr::null_mut()).unwrap();
 
             // Flush the send buffer before returning to the connection
             self.flush();

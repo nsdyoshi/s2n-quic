@@ -577,7 +577,7 @@ impl<C: CryptoSuite> tls::Context<C> for Context<C> {
         self.application.tx(transmission)
     }
 
-    fn waker(&self) -> &Waker {
-        &self.waker
+    fn waker(&mut self) -> &mut Waker {
+        &mut self.waker
     }
 }

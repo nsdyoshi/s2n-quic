@@ -277,7 +277,7 @@ impl<Config: endpoint::Config> ConnectionImpl<Config> {
             &mut self.local_id_registry,
             &mut self.limits,
             timestamp,
-            &self.waker,
+            &mut self.waker,
             &mut publisher,
         ) {
             Poll::Ready(res) => res?,

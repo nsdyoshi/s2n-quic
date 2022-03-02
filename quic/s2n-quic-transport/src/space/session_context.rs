@@ -45,7 +45,7 @@ pub struct SessionContext<'a, Config: endpoint::Config, Pub: event::ConnectionPu
     pub handshake_status: &'a mut HandshakeStatus,
     pub local_id_registry: &'a mut connection::LocalIdRegistry,
     pub limits: &'a mut Limits,
-    pub waker: &'a Waker,
+    pub waker: &'a mut Waker,
     pub publisher: &'a mut Pub,
 }
 
@@ -499,7 +499,7 @@ impl<'a, Config: endpoint::Config, Pub: event::ConnectionPublisher>
         unimplemented!("application level crypto frames cannot currently be sent")
     }
 
-    fn waker(&self) -> &Waker {
+    fn waker(&mut self) -> &mut Waker {
         self.waker
     }
 }

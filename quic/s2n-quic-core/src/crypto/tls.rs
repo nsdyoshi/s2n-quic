@@ -87,7 +87,7 @@ pub trait Context<Crypto: CryptoSuite> {
     fn can_send_application(&self) -> bool;
     fn send_application(&mut self, transmission: Bytes);
 
-    fn waker(&self) -> &Waker;
+    fn waker(&mut self) -> &mut Waker;
 }
 
 pub trait Endpoint: 'static + Sized + Send {

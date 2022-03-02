@@ -187,7 +187,7 @@ impl<Config: endpoint::Config> PacketSpaceManager<Config> {
         local_id_registry: &mut connection::LocalIdRegistry,
         limits: &mut Limits,
         now: Timestamp,
-        waker: &Waker,
+        waker: &mut Waker,
         publisher: &mut Pub,
     ) -> Poll<Result<(), transport::Error>> {
         if let Some(session_info) = self.session_info.as_mut() {

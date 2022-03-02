@@ -10,7 +10,7 @@ use crate::{
 use s2n_codec::EncoderValue;
 use s2n_quic_core::{application::ServerName, crypto::tls, endpoint};
 use s2n_tls::raw::{
-    config::{self, Config},
+    config::{self, ClientHelloHandler, Config},
     error::Error,
     security,
 };
@@ -62,6 +62,17 @@ impl Default for Builder {
 }
 
 impl Builder {
+    pub fn with_config_resolver<T: ClientHelloHandler>(
+        mut self,
+        handler: T,
+    ) -> Result<Self, Error> {
+        unsafe {
+            // Safety: a Waker is set on the connection context
+            self.config.set_client_hello_handler(handler)?;
+        }
+        Ok(self)
+    }
+
     pub fn with_application_protocols<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
         mut self,
         protocols: P,
