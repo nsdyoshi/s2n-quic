@@ -8,6 +8,7 @@ use crate::{
     tls::TlsProviders,
     Result,
 };
+use core::task::Waker;
 use s2n_quic::{
     provider::{
         endpoint_limits,
@@ -122,6 +123,7 @@ impl Interop {
                     .with_application_protocols(
                         self.application_protocols.iter().map(String::as_bytes),
                     )?
+                    .with_client_hello_handler(Bla {})?
                     .with_key_logging()?
                     .build()?;
 
@@ -148,6 +150,21 @@ impl Interop {
         eprintln!("Server listening on port {}", self.port);
 
         Ok(server)
+    }
+}
+
+struct Bla {}
+
+use s2n_tls::raw::config::ClientHelloHandler;
+impl ClientHelloHandler for Bla {
+    fn poll_client_hello(
+        &self,
+        connection: &mut s2n_tls::raw::connection::Connection,
+    ) -> core::task::Poll<Result<(), ()>> {
+        let _server_name = connection.server_name();
+        let _waker: &mut Waker = connection.get_waker();
+
+        todo!()
     }
 }
 

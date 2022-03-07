@@ -62,14 +62,11 @@ impl Default for Builder {
 }
 
 impl Builder {
-    pub fn with_config_resolver<T: ClientHelloHandler>(
+    pub fn with_client_hello_handler<T: ClientHelloHandler>(
         mut self,
         handler: T,
     ) -> Result<Self, Error> {
-        unsafe {
-            // Safety: a Waker is set on the connection context
-            self.config.set_client_hello_handler(handler)?;
-        }
+        self.config.set_client_hello_handler(handler)?;
         Ok(self)
     }
 
