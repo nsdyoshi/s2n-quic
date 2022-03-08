@@ -8,7 +8,6 @@ use crate::{
     tls::TlsProviders,
     Result,
 };
-use core::task::Waker;
 use s2n_quic::{
     provider::{
         endpoint_limits,
@@ -158,13 +157,11 @@ struct Bla {}
 use s2n_tls::raw::config::ClientHelloHandler;
 impl ClientHelloHandler for Bla {
     fn poll_client_hello(
-        &self,
+        &mut self,
         connection: &mut s2n_tls::raw::connection::Connection,
     ) -> core::task::Poll<Result<(), ()>> {
-        let _server_name = connection.server_name();
-        let _waker: &mut Waker = connection.get_waker();
-
-        todo!()
+        connection.waker().unwrap().wake_by_ref();
+        core::task::Poll::Ready(Ok(()))
     }
 }
 

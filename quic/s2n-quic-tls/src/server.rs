@@ -62,7 +62,7 @@ impl Default for Builder {
 }
 
 impl Builder {
-    pub fn with_client_hello_handler<T: ClientHelloHandler>(
+    pub fn with_client_hello_handler<T: 'static + ClientHelloHandler>(
         mut self,
         handler: T,
     ) -> Result<Self, Error> {
