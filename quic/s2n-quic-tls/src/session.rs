@@ -88,6 +88,7 @@ impl tls::Session for Session {
             Poll::Ready(Ok(())) => {
                 // only emit handshake done once
                 if !self.handshake_complete {
+                    self.state.handshake_complete();
                     context.on_handshake_complete()?;
                     self.handshake_complete = true;
                 }
