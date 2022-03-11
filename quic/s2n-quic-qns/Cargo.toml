@@ -14,7 +14,7 @@ bytes = { version = "1", default-features = false }
 dhat = { version = "0.2", optional = true }
 futures = "0.3"
 http = "0.2"
-openssl-sys = { version = "<= 0.9.68", features = ["vendored"] }
+openssl-sys = { version = "<= 0.9.73", features = ["vendored"] }
 s2n-quic-core = { version = "=0.1.1", path = "../s2n-quic-core", features = ["testing"] }
 s2n-quic-h3 = { version = "=0.1.0", path = "../s2n-quic-h3" }
 structopt = "0.3"
